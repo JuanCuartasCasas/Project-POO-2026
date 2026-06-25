@@ -7,15 +7,15 @@ class OlimpicaItem(scrapy.Item):
     item_type: "category" | "product" | "promotion" | "trend"
     """
 
-    #  Comunes 
+    #  Comunes
     source = scrapy.Field()  # siempre "olimpica.com"
-    item_type = scrapy.Field() 
+    item_type = scrapy.Field()
     id = scrapy.Field()
     name = scrapy.Field()
     url = scrapy.Field()
     raw_data = scrapy.Field()
 
-    #  Categoría 
+    #  Categoría
     parent_id = scrapy.Field()
     parent_name = scrapy.Field()
     has_children = scrapy.Field()
@@ -28,19 +28,19 @@ class OlimpicaItem(scrapy.Item):
     image_url = scrapy.Field()
     brand = scrapy.Field()
     category_id = scrapy.Field()
-    category_name = scrapy.Field() 
+    category_name = scrapy.Field()
     available = scrapy.Field()
     sku = scrapy.Field()
     description = scrapy.Field()
 
-    # Promoción 
+    # Promoción
     promo_description = scrapy.Field()
     discount_value = scrapy.Field()
-    discount_type = scrapy.Field()  
+    discount_type = scrapy.Field()
     promo_end_date = scrapy.Field()
     product_ids = scrapy.Field()
 
     # Tendencia
     trend_rank = scrapy.Field()  # posición en el ranking
-    trend_season = scrapy.Field()  
-    trend_score = scrapy.Field()  
+    trend_season = scrapy.Field()
+    trend_score = scrapy.Field()
