@@ -1,0 +1,197 @@
+import threading
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import json
+
+
+COLOR_BG = "#f5f3ef"
+COLOR_HEADER = "#1D4ED8"
+COLOR_HEADER_TEXT = "#ffffff"
+COLOR_BTN_SCRAP = "#1D4ED8"
+COLOR_BTN_EXPORT = "#ffffff"
+COLOR_SUCCESS = "#e8f4e8"
+COLOR_SUCCESS_TEXT = "#2d5a2d"
+COLOR_ROW_ODD = "#ffffff"
+COLOR_ROW_EVEN = "#f9f9f9"
+
+
+class OlimpicaApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Olímpica Webscrapper")
+        self.geometry("780x520")
+        self.resizable(True, True)
+        self.configure(bg=COLOR_BG)
+        self._build_ui()
+
+    def _build_ui(self):
+        # -- Barra superior --
+        top = tk.Frame(self, bg=COLOR_HEADER, pady=10, padx=14)
+        top.pack(fill="x")
+
+        tk.Label(
+            top,
+            text="Olímpica Webscrapper",
+            bg=COLOR_HEADER,
+            fg=COLOR_HEADER_TEXT,
+            font=("Helvetica", 14, "bold"),
+        ).pack(side="left")
+
+        # -- Controles --
+        ctrl = tk.Frame(self, bg=COLOR_BG, pady=10, padx=14)
+        ctrl.pack(fill="x")
+
+        tk.Label(ctrl, text="Tipo:", bg=COLOR_BG, font=("Helvetica", 11)).pack(
+            side="left", padx=(0, 6)
+        )
+
+        self.tipo_var = tk.StringVar(value="Categorías")
+        self.selector = ttk.Combobox(
+            ctrl,
+            textvariable=self.tipo_var,
+            values=["Categorías", "Productos", "Promociones"],
+            state="readonly",
+            width=14,
+            font=("Helvetica", 11),
+        )
+        self.selector.pack(side="left", padx=(0, 10))
+
+        self.btn_scrap = tk.Button(
+            ctrl,
+            text="Scrapear",
+            bg=COLOR_BTN_SCRAP,
+            fg=COLOR_HEADER_TEXT,
+            font=("Helvetica", 11, "bold"),
+            relief="flat",
+            padx=14,
+            pady=4,
+            cursor="hand2",
+            command=self._iniciar_scraping,
+        )
+        self.btn_scrap.pack(side="left", padx=(0, 8))
+
+        self.btn_export = tk.Button(
+            ctrl,
+            text="Exportar JSON",
+            bg=COLOR_BTN_EXPORT,
+            fg="#333",
+            font=("Helvetica", 11),
+            relief="solid",
+            padx=14,
+            pady=4,
+            cursor="hand2",
+            command=self._exportar_json,
+        )
+        self.btn_export.pack(side="left")
+
+        # -- Tabla --
+        tabla_frame = tk.Frame(self, bg=COLOR_BG, padx=14)
+        tabla_frame.pack(fill="both", expand=True)
+
+        columnas = ("#", "Nombre", "URL", "Nivel")
+        self.tabla = ttk.Treeview(
+            tabla_frame, columns=columnas, show="headings", height=16
+        )
+
+        anchos = [40, 220, 360, 60]
+        for col, ancho in zip(columnas, anchos):
+            self.tabla.heading(col, text=col)
+            self.tabla.column(col, width=ancho, anchor="w")
+
+        scroll = ttk.Scrollbar(tabla_frame, orient="vertical", command=self.tabla.yview)
+        self.tabla.configure(yscrollcommand=scroll.set)
+
+        self.tabla.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
+
+        self.tabla.tag_configure("odd", background=COLOR_ROW_ODD)
+        self.tabla.tag_configure("even", background=COLOR_ROW_EVEN)
+
+        # -- Barra de estado --
+        self.status_var = tk.StringVar(value="Listo")
+        self.status_bar = tk.Label(
+            self,
+            textvariable=self.status_var,
+            bg=COLOR_SUCCESS,
+            fg=COLOR_SUCCESS_TEXT,
+            font=("Helvetica", 10),
+            anchor="w",
+            padx=14,
+            pady=5,
+        )
+        self.status_bar.pack(fill="x", side="bottom")
+
+        self.items_scrapeados = []
+
+    # ------------------------------------------------------------------
+    # Scraping
+    # ------------------------------------------------------------------
+
+    def _iniciar_scraping(self):
+        self.btn_scrap.config(state="disabled", text="Scrapeando...")
+        self.status_var.set("Corriendo spider...")
+        self.tabla.delete(*self.tabla.get_children())
+        self.items_scrapeados = []
+        hilo = threading.Thread(target=self._correr_spider, daemon=True)
+        hilo.start()
+
+    def _correr_spider(self):
+        """
+        Aquí va la llamada real al spider de Scrapy.
+        Por ahora se usan datos de ejemplo para probar la interfaz.
+        Reemplaza el contenido de esta función con CrawlerProcess.
+        """
+        import time
+
+        datos_ejemplo = [
+            {"name": "Mercado", "url": "/mercado", "level": 0},
+            {"name": "Lácteos", "url": "/mercado/lacteos", "level": 1},
+            {"name": "Quesos", "url": "/mercado/lacteos/quesos", "level": 2},
+            {"name": "Droguería", "url": "/drogueria", "level": 0},
+            {"name": "Medicamentos", "url": "/drogueria/med", "level": 1},
+        ]
+
+        for item in datos_ejemplo:
+            time.sleep(0.4)
+            self.items_scrapeados.append(item)
+            self.after(0, self._agregar_fila, item)
+
+        self.after(0, self._scraping_terminado)
+
+    def _agregar_fila(self, item):
+        n = len(self.tabla.get_children()) + 1
+        tag = "odd" if n % 2 != 0 else "even"
+        self.tabla.insert(
+            "",
+            "end",
+            values=(n, item.get("name", ""), item.get("url", ""), item.get("level", "")),
+            tags=(tag,),
+        )
+
+    def _scraping_terminado(self):
+        total = len(self.items_scrapeados)
+        self.status_var.set(f"Spider finalizado — {total} ítems recolectados")
+        self.btn_scrap.config(state="normal", text="Scrapear")
+
+    # ------------------------------------------------------------------
+    # Exportar
+    # ------------------------------------------------------------------
+
+    def _exportar_json(self):
+        if not self.items_scrapeados:
+            messagebox.showwarning("Sin datos", "Primero ejecuta el scraper.")
+            return
+        ruta = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json")],
+            initialfile="olimpica_data.json",
+        )
+        if ruta:
+            with open(ruta, "w", encoding="utf-8") as f:
+                json.dump(self.items_scrapeados, f, ensure_ascii=False, indent=2)
+            self.status_var.set(f"Exportado en {ruta}")
+
+
+if __name__ == "__main__":
+    app = OlimpicaApp()
+    app.mainloop()
